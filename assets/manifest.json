@@ -1,0 +1,112 @@
+{
+  "repository": "https://github.com/PokeAPI/sprites",
+  "commit": "a13b1f4ccd77f35fd1370d2db5f0051221e9683f",
+  "rights_status": "Original Pokemon IP permission unresolved. Local prototype; not cleared for redistribution.",
+  "files": [
+    {
+      "file": "assets/pokemon/1.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/1.png",
+      "sha256": "7307265558511ea080add119ab7e86b9f87aaab4cedef76df2a13290ca5ad8c9",
+      "bytes": 543,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/2.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/2.png",
+      "sha256": "0d73b98081fcaa3fe22524d47573da3391a24465dc31c92c4ce2f1c00d14908e",
+      "bytes": 870,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/3.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/3.png",
+      "sha256": "f3ed13e1666f67ccf6aef1453d4a3fb0ceb6b6c5769c56f9e46ec4ac021542af",
+      "bytes": 1531,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/4.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/4.png",
+      "sha256": "4e943ded73aff00aa8323800481412cf0912649d640f5ad5021e8e1e2b3e77c6",
+      "bytes": 583,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/5.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/5.png",
+      "sha256": "bcde3e81319fa632e1aa953ea3ea07752b7b467f268f3ef8079f23c81b07b1e4",
+      "bytes": 832,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/6.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/6.png",
+      "sha256": "53358b7e8be91014bd18285862bd56c0549b5d23af175deb59f0e6f6339c878f",
+      "bytes": 1330,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/7.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/7.png",
+      "sha256": "1309dd0971ab7c5cd1699fa6ead8b00c9d8fa7f39e09313e697b3d31527f0517",
+      "bytes": 575,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/8.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/8.png",
+      "sha256": "b134db468e452916048b96f574d7a2342b401ddb67c061473a88d92e78943f48",
+      "bytes": 946,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/9.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/9.png",
+      "sha256": "440579ff6026385631d7fe17377e5e58da3f0088531afffb527fbb8c3936dc34",
+      "bytes": 1170,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/10.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/10.png",
+      "sha256": "a1289541d01ae034b4549742a999838967dbda70b2a194fa38271f5a24e7e132",
+      "bytes": 568,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/16.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/16.png",
+      "sha256": "5c5a61d93b38fe834b926d34dc340ff92bc7ad33583d7ae47bcfb84291e809a8",
+      "bytes": 557,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/25.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/25.png",
+      "sha256": "80d30eb1b9f2a05eb4a216d53034e2a0bb16f2619ec43d281f36d601e5819c2c",
+      "bytes": 597,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/43.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/43.png",
+      "sha256": "a3a8f5cbae73020b3ed917fe952d7ff55fd25e61deaaf717e5393c0418b13102",
+      "bytes": 469,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/54.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/54.png",
+      "sha256": "c6cee8266a57cb24657c8230b5f43bc22872b185c871b3ccf66cae8e52da0952",
+      "bytes": 513,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    },
+    {
+      "file": "assets/pokemon/94.png",
+      "source": "https://raw.githubusercontent.com/PokeAPI/sprites/a13b1f4ccd77f35fd1370d2db5f0051221e9683f/sprites/pokemon/94.png",
+      "sha256": "00ad4a589f9fc1a88f77dcd512477e2e124ec4030b01d8e786700fad14d38ead",
+      "bytes": 802,
+      "attribution": "Image copyright: The Pokemon Company, per upstream LICENCE.txt"
+    }
+  ]
+}
