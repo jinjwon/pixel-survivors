@@ -15,10 +15,12 @@ func run_case(starter: int) -> bool:
  arena.sound_on = false
  arena.select_starter(starter)
  arena.start_run()
+ arena.rng.seed=721+starter
+ arena.condition=arena.Journey.CONDITIONS[2]
  var ticks: int = 0
  var upgrades: int = 0
  var start: int = Time.get_ticks_msec()
- while ticks < 60*280 and arena.state not in ["victory","defeat"]:
+ while ticks < 60*460 and arena.state not in ["victory","defeat"]:
   if arena.state == "upgrade":
    var pick = arena.offers[0]
    for desired in (["flame","scratch","ember","dragon","heal"] if starter==4 else (["bubble","bite","watergun","tackle","heal"] if starter==7 else ["razor","vine","sludge","tackle","heal"])):
@@ -27,6 +29,10 @@ func run_case(starter: int) -> bool:
      break
    arena.choose_upgrade(pick)
    upgrades += 1
+  if arena.state == "intermission":
+   var pick=arena.relic_offers[0]
+   if "charcoal" in arena.relic_offers: pick="charcoal"
+   arena.choose_relic(pick)
   # Agent moves at the same speed as the player toward drops while avoiding nearby enemies.
   var destination: Vector2 = Vector2(480,290)+Vector2.RIGHT.rotated(arena.elapsed*0.10)*140
   var closest: float = 200
@@ -40,7 +46,7 @@ func run_case(starter: int) -> bool:
    var away: Vector2 = arena.player-foe.pos
    if away.length() < 50:
     movement += away.normalized()*(50-away.length())/18.0
-  arena.player += movement.normalized()*112.0/60.0
+  arena.player += movement.normalized()*112.0*(1.0+arena.bonuses.speed)/60.0
   arena._process(1.0/60.0)
   ticks += 1
   if ticks % 600 == 0: await process_frame

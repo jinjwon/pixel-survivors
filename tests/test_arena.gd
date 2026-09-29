@@ -38,15 +38,15 @@ func run() -> void:
  check(arena.state == "defeat", "Lethal damage terminates the run")
  arena.start_run()
  check(arena.enemies.is_empty() and arena.gems.is_empty() and arena.level == 1 and arena.kills == 0 and arena.hp == 100, "Restart clears all prior run state")
- arena.elapsed = 180.0
+ arena.region_elapsed = 90.0
  arena._process(0.01)
  check(arena.boss_spawned, "Boss spawns at encounter deadline")
  for foe in arena.enemies:
   if foe.boss:
    arena.hit_enemy(foe, 99999, 1.0)
- check(arena.state == "victory", "Boss defeat ends run successfully")
+ check(arena.state == "intermission", "First boss grants a stage reward")
  arena.start_run()
- arena.elapsed = 270.0
+ arena.region_elapsed = 150.0
  arena._process(0.01)
  check(arena.state == "defeat", "Boss timeout prevents endless runs")
  print("ARENA: " + str(failures) + " failures")

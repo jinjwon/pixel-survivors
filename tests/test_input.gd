@@ -81,6 +81,24 @@ func run() -> void:
   root.push_input(click,true)
   await process_frame
  check(arena.state=="playing" and arena.player_number()==1,"Click on start launches chosen Bulbasaur")
+ arena.ui.show_menu()
+ await process_frame
+ var search: LineEdit=arena.ui.search_input
+ search.grab_focus()
+ search.text="나무지기"
+ search.text_changed.emit(search.text)
+ await process_frame
+ check(arena.ui.results_box.get_child_count()==1,"Korean search filters visible cards")
+ press(KEY_ENTER,true)
+ await process_frame
+ press(KEY_ENTER,false)
+ check(arena.state=="menu","Enter in search does not accidentally start a run")
+ var hoenn:Button=arena.ui.results_box.find_child("Starter_252",true,false)
+ check(hoenn!=null,"Search exposes Gen III starter")
+ hoenn.pressed.emit()
+ check(arena.selected_starter==252,"Searched Gen III selection reaches game state")
+ arena.start_run()
+ check(arena.player_name()=="나무지기","Selected Gen III partner starts correctly")
  print("INPUT: %d failures" % failures)
  arena.queue_free()
  await process_frame

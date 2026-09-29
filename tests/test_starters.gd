@@ -46,7 +46,7 @@ func run() -> void:
   arena.start_run()
   check(arena.player_number()==spec.id and arena.ranks=={spec.move:1} and arena.level==1, "Retry keeps selection but resets evolution and moves")
  arena.ui.show_menu()
- check(not arena.select_starter(94), "Unavailable species rejected")
+ check(not arena.select_starter(387), "Unavailable species rejected")
  var rules = arena.rules
  check(rules.move_damage("watergun",1,["fire"])>rules.move_damage("watergun",1,["water"]), "Water move uses Water effectiveness")
  check(rules.move_damage("vine",1,["water"])>rules.move_damage("vine",1,["fire"]), "Grass move uses Grass effectiveness")

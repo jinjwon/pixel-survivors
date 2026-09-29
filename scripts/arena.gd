@@ -1,5 +1,12 @@
 extends Node2D
 
+const Motion=preload("res://scripts/motion.gd")
+var walking:float=0.0
+var attack_time:float=0.0
+var hit_time:float=0.0
+
+const Journey = preload("res://scripts/journey.gd")
+const FX = preload("res://scripts/combat_fx.gd")
 const Rules = preload("res://scripts/rules.gd")
 const Meadow = preload("res://scripts/meadow.gd")
 const Interface = preload("res://scripts/interface.gd")
@@ -12,6 +19,17 @@ const SPECIES = {
  94:{"types":["ghost","poison"],"hp":1400.0,"speed":21.0,"name":"팬텀"}
 }
 var rules = Rules.new()
+var region: int = 0
+var region_elapsed: float = 0.0
+var relics: Array = []
+var relic_offers: Array = []
+var bonuses: Dictionary = {}
+var max_hp: float = 100.0
+var run_seed: int = 0
+var rng := RandomNumberGenerator.new()
+var condition: Dictionary = Journey.CONDITIONS[2]
+var field: Node2D
+
 var selected_starter: int = 4
 var ui: CanvasLayer
 var textures: Dictionary = {}
@@ -49,10 +67,10 @@ var sfx: AudioStreamPlayer
 var sound_clock: float = 0
 
 func _ready() -> void:
- var field = Meadow.new()
+ field = Meadow.new()
  field.z_index = -10
  add_child(field)
- for number in [1,2,3,4,5,6,7,8,9,10,16,25,43,54,94]:
+ for number in range(1,387):
   var texture = load("res://assets/pokemon/%s.png" % number)
   if texture:
    textures[number] = texture
@@ -83,24 +101,39 @@ func tone(frequency: float, duration: float = 0.08) -> void:
  sound_clock = 0.08
 
 func select_starter(number: int) -> bool:
- if state != "menu" or not number in rules.STARTER_ORDER: return false
+ if state != "menu" or not rules.catalog.can_start(number): return false
  selected_starter = number
  ui.show_menu()
  return true
 
 func player_number() -> int:
- return rules.STARTERS[selected_starter].family[stage]
+ return rules.STARTERS[selected_starter].family[mini(stage,rules.STARTERS[selected_starter].family.size()-1)]
 
 func player_name() -> String:
- return rules.STARTERS[selected_starter].names[stage]
+ return rules.STARTERS[selected_starter].names[mini(stage,rules.STARTERS[selected_starter].names.size()-1)]
 
 func player_types() -> Array:
- return rules.STARTERS[selected_starter].types[stage]
+ return rules.STARTERS[selected_starter].types[mini(stage,rules.STARTERS[selected_starter].types.size()-1)]
 
 func start_run() -> void:
+ if not rules.catalog.can_start(selected_starter): return
+ walking=0.0
+ attack_time=0.0
+ hit_time=0.0
  player = Vector2(480,290)
  direction = Vector2.RIGHT
  hp = 100
+ max_hp = 100
+ region = 0
+ region_elapsed = 0
+ relics.clear()
+ relic_offers.clear()
+ bonuses = {"damage":0.0,"haste":0.0,"speed":0.0,"guard":0.0,"magnet":0.0,"health":0.0}
+ rng.randomize()
+ run_seed = rng.seed
+ condition = Journey.CONDITIONS[rng.randi_range(0,2)]
+ field.region = region
+ field.queue_redraw()
  level = 1
  xp = 0
  stage = 0
@@ -132,7 +165,11 @@ func start_run() -> void:
 
 func _unhandled_key_input(event: InputEvent) -> void:
  if not event is InputEventKey or not event.pressed or event.echo: return
- if state == "menu" and event.keycode in [KEY_1,KEY_2,KEY_3]:
+ if state == "menu" and get_viewport().gui_get_focus_owner() is LineEdit: return
+ if state == "intermission" and event.keycode in [KEY_1,KEY_2,KEY_3]:
+  var index: int = event.keycode-KEY_1
+  if index<relic_offers.size(): choose_relic(relic_offers[index])
+ elif state == "menu" and event.keycode in [KEY_1,KEY_2,KEY_3]:
   select_starter(rules.STARTER_ORDER[event.keycode-KEY_1])
  elif event.keycode == KEY_ESCAPE:
   if state == "playing":
@@ -153,11 +190,14 @@ func _unhandled_key_input(event: InputEvent) -> void:
   start_run()
 
 func _process(delta: float) -> void:
- anim_time += delta
+ if state=="playing": anim_time += delta
  sound_clock = maxf(0,sound_clock-delta)
  queue_redraw()
  if state != "playing": return
+ attack_time=maxf(0.0,attack_time-delta)
+ hit_time=maxf(0.0,hit_time-delta)
  elapsed += delta
+ region_elapsed += delta
  invincible = maxf(0,invincible-delta)
  dash_time = maxf(0,dash_time-delta)
  dash_cooldown = maxf(0,dash_cooldown-delta)
@@ -165,30 +205,29 @@ func _process(delta: float) -> void:
  var movement := Vector2(
   float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT))-float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
   float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN))-float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
+ walking=move_toward(walking,1.0 if movement.length_squared()>0 else 0.0,delta*9.0)
  if movement.length_squared() > 0:
   direction = movement.normalized()
-  player += direction * (310.0 if dash_time > 0 else 112.0) * delta
+  player += direction * (310.0 if dash_time > 0 else 112.0*(1.0+bonuses.get("speed",0.0))) * delta
  player = player.clamp(Vector2(67,130),Vector2(891,459))
- if elapsed >= 270:
+ if region_elapsed >= Journey.DEADLINE:
   end_run(false)
   return
- if elapsed >= 180 and not boss_spawned:
+ if region_elapsed >= Journey.WAVE_TIME and not boss_spawned:
   boss_spawned = true
-  spawn_enemy(94,Vector2(480,135))
-  banner = "팬텀 등장! · 노말 기술은 통하지 않아요"
-  banner_time = 5
+  spawn_enemy(Journey.STAGES[region].boss,Vector2(480,160))
+  banner = "%s 등장! · 보스를 쓰러뜨리세요" % rules.catalog.entries[Journey.STAGES[region].boss].name
+  banner_time = 4
   tone(180,0.2)
  spawn_clock -= delta
  if spawn_clock <= 0 and enemies.size() < 65:
-  spawn_clock = maxf(0.42,1.4-elapsed/180)
-  var pool: Array = [10,43,16]
-  if elapsed > 28: pool.append(7)
-  if elapsed > 60: pool.append(25)
+  spawn_clock = maxf(0.4,1.1-region_elapsed/150.0)*condition.spawn
+  var pool: Array = Journey.STAGES[region].pool
   var edge := randi_range(0,3)
   var at := Vector2(randf_range(75,885),135 if edge == 0 else 457)
   if edge > 1: at = Vector2(70 if edge == 2 else 890,randf_range(135,455))
   if at.distance_to(player) < 100: at = Vector2(960-at.x,590-at.y)
-  spawn_enemy(pool.pick_random(),at)
+  spawn_enemy(pool[rng.randi_range(0,pool.size()-1)],at)
  for move in ranks:
   cooldowns[move] = float(cooldowns.get(move,0))-delta
   if cooldowns[move] <= 0:
@@ -205,8 +244,8 @@ func _process(delta: float) -> void:
     foe.shot = 2.4
     for i in 10:
      var v := Vector2.RIGHT.rotated(TAU*float(i)/10.0+elapsed*0.2)
-     hostile_shots.append({"pos":foe.pos,"vel":v*68,"life":6.0})
-  if offset.length() < (32 if foe.boss else 22): hurt_player(18 if foe.boss else 9,"normal")
+     hostile_shots.append({"pos":foe.pos,"vel":v*68,"life":6.0,"type":foe.types[0]})
+  if offset.length() < (32 if foe.boss else 22): hurt_player(18 if foe.boss else 9,foe.types[0])
   if state != "playing": return
  for shot in projectiles:
   shot.pos += shot.vel*delta
@@ -216,7 +255,9 @@ func _process(delta: float) -> void:
    if foe.dead or foe.id in shot.hit: continue
    if shot.pos.distance_to(foe.pos) < (30 if foe.boss else 19):
     shot.hit.append(foe.id)
-    hit_enemy(foe,rules.move_damage(shot.move,ranks.get(shot.move,1),foe.types),rules.multiplier(rules.MOVES[shot.move].type,foe.types))
+    hit_enemy(foe,rules.move_damage(shot.move,ranks.get(shot.move,1),foe.types)*(1.0+bonuses.get("damage",0.0)),rules.multiplier(rules.MOVES[shot.move].type,foe.types))
+    add_impact(foe.pos-Vector2(0,12),shot.move)
+    if state != "playing": return
     shot.pierce -= 1
     if shot.pierce <= 0:
      shot.life = 0
@@ -227,7 +268,7 @@ func _process(delta: float) -> void:
   shot.pos += shot.vel*delta
   shot.life -= delta
   if shot.pos.distance_to(player) < 16:
-   hurt_player(12,"normal")
+   hurt_player(12,shot.get("type","normal"))
    shot.life = 0
   if state != "playing": return
  hostile_shots = hostile_shots.filter(func(p): return p.life > 0)
@@ -235,7 +276,8 @@ func _process(delta: float) -> void:
  for gem in gems:
   if gem.taken: continue
   var distance: float = gem.pos.distance_to(player)
-  if distance < 90: gem.pos = gem.pos.move_toward(player, (180.0 + (90-distance)*3)*delta)
+  var reach: float = 90.0+bonuses.get("magnet",0.0)
+  if distance < reach: gem.pos = gem.pos.move_toward(player, (180.0 + (reach-distance)*3)*delta)
   if distance < 17:
    gem.taken = true
    gain_xp(gem.value)
@@ -250,10 +292,11 @@ func _process(delta: float) -> void:
  ui.update_hud()
 
 func spawn_enemy(number: int, at: Vector2) -> void:
- var spec: Dictionary = SPECIES[number]
- var max_hp: float = spec.hp * (1.0+elapsed/220.0) if number != 94 else spec.hp
+ var row: Dictionary = rules.catalog.entries[number]
+ var is_boss: bool = number==Journey.STAGES[region].boss
+ var foe_hp: float = (620.0+region*460.0) if is_boss else (23.0+region*18.0+region_elapsed*0.15)
  next_id += 1
- enemies.append({"id":next_id,"number":number,"types":spec.types,"pos":at,"hp":max_hp,"max_hp":max_hp,"speed":spec.speed,"dead":false,"flash":0.0,"boss":number==94,"shot":2.0})
+ enemies.append({"id":next_id,"number":number,"types":row.types,"pos":at,"hp":foe_hp,"max_hp":foe_hp,"speed":(20.0+region*3.0+float(row.stats.get("6",50))*0.08)*condition.speed,"dead":false,"flash":0.0,"boss":is_boss,"shot":2.0})
 
 func nearest_enemy():
  var target = null
@@ -269,24 +312,28 @@ func nearest_enemy():
 func attack(move: String) -> void:
  var target = nearest_enemy()
  if target == null: return
+ attack_time=0.18
  var rank: int = ranks[move]
+ tone({"fire":340.0,"water":680.0,"grass":440.0,"electric":980.0,"ghost":240.0,"ice":1100.0}.get(rules.MOVES[move].type,520.0),0.045)
  var aim: Vector2 = (target.pos-player).normalized()
- cooldowns[move] = rules.MOVES[move].cooldown / (1.0+0.12*(rank-1)+stage*0.1)
- if move in ["ember","dragon","watergun","bubble","razor"]:
+ cooldowns[move] = rules.MOVES[move].cooldown / (1.0+0.12*(rank-1)+stage*0.1)*maxf(0.5,1.0-bonuses.get("haste",0.0))
+ if move in ["ember","dragon","watergun","bubble","razor","swift","spark","ice","gust","sting","rock","shadow"]:
   var count: int = 1 + int(rank >= 3) + int(rank >= 5) if move in ["ember","watergun"] else 1
   if move=="bubble": count = 3+int(rank>=4)
-  if projectiles.size() < 150:
+  if projectiles.size()+count <= 150:
    for i in count:
     var angle: float = (i-(count-1)*0.5)*0.16
-    projectiles.append({"pos":player-Vector2(0,16),"vel":aim.rotated(angle)*(210 if move=="ember" else 180),"move":move,"life":2.5,"pierce":4 if move=="dragon" else (2 if move=="razor" else 1),"hit":[]})
+    projectiles.append({"pos":player-Vector2(0,8),"vel":aim.rotated(angle)*(210 if move=="ember" else 180),"move":move,"life":2.5,"pierce":4 if move=="dragon" else (2 if move in ["razor","ice","swift"] else 1),"hit":[]})
  else:
-  var radius: float = 68+rank*9 if move in ["scratch","tackle","bite","vine"] else 115+rank*12
-  effects.append({"pos":player,"aim":aim,"move":move,"radius":radius,"life":0.22})
+  var radius: float = 68+rank*9 if move in ["scratch","tackle","bite","vine","quake","punch","metal"] else 115+rank*12
+  if effects.size()<160: effects.append({"pos":player,"aim":aim,"move":move,"radius":radius,"life":0.32,"total":0.32,"kind":"area"})
   for foe in enemies:
    if foe.dead: continue
    var offset: Vector2 = foe.pos-player
-   if offset.length() <= radius and (move in ["scratch","tackle","bite","vine"] or aim.dot(offset.normalized())>0.72):
-    hit_enemy(foe,rules.move_damage(move,rank,foe.types),rules.multiplier(rules.MOVES[move].type,foe.types))
+   if offset.length() <= radius and (move in ["scratch","tackle","bite","vine","quake","punch","metal"] or aim.dot(offset.normalized())>0.72):
+    hit_enemy(foe,rules.move_damage(move,rank,foe.types)*(1.0+bonuses.get("damage",0.0)),rules.multiplier(rules.MOVES[move].type,foe.types))
+    add_impact(foe.pos-Vector2(0,12),move)
+    if state != "playing": return
     foe.pos += offset.normalized()*8
 
 func hit_enemy(foe: Dictionary, damage: float, factor: float) -> void:
@@ -294,22 +341,23 @@ func hit_enemy(foe: Dictionary, damage: float, factor: float) -> void:
  foe.hp -= damage
  foe.flash = 0.09
  if messages.size() < 35:
-  messages.append({"pos":foe.pos-Vector2(5,34),"text":"무효" if damage<=0 else str(int(damage)),"color":Color("fff0a3") if factor>1 else (Color("afc9cc") if factor<1 else Color.WHITE),"life":0.55})
+  messages.append({"pos":foe.pos-Vector2(5,34),"text":"무효" if damage<=0 else str(int(damage)),"color":Color("a64037") if factor>1 else (Color("6b6c77") if factor<1 else Color("304452")),"life":0.55})
  if foe.hp <= 0:
   foe.dead = true
   kills += 1
   if foe.boss:
-   end_run(true)
+   complete_region()
    return
   if gems.size() >= 160:
    gems[0].value += 3
   else:
-   gems.append({"pos":foe.pos,"value":3,"taken":false})
+   gems.append({"pos":foe.pos,"value":3+int(condition.xp),"taken":false})
 
 func hurt_player(damage: float, kind: String) -> void:
  if state != "playing" or invincible > 0: return
- hp -= damage*rules.multiplier(kind,player_types())
+ hp -= damage*rules.multiplier(kind,player_types())*maxf(0.4,1.0-bonuses.get("guard",0.0))
  invincible = 0.8
+ hit_time=0.18
  tone(120,0.12)
  if hp <= 0:
   hp = 0
@@ -320,10 +368,11 @@ func gain_xp(amount: int) -> void:
  xp = result.xp
  level = result.level
  pending_upgrades += result.gained
- var evolved: bool = rules.evolution(level) > stage
- stage = rules.evolution(level)
+ var next_stage: int = mini(rules.evolution(level),rules.STARTERS[selected_starter].family.size()-1)
+ var evolved: bool = next_stage > stage
+ stage = next_stage
  if evolved:
-  hp = minf(100,hp+25)
+  hp = minf(max_hp,hp+25)
   banner = "%s 진화! · 체력 25 회복" % player_name()
   banner_time = 4.0
  if pending_upgrades > 0:
@@ -334,7 +383,7 @@ func gain_xp(amount: int) -> void:
 
 func choose_upgrade(move: String) -> void:
  if state != "upgrade" or not move in offers: return
- if move == "heal": hp = minf(100,hp+35)
+ if move == "heal": hp = minf(max_hp,hp+35)
  else:
   ranks[move] = int(ranks.get(move,0))+1
   cooldowns[move] = 0.15
@@ -353,16 +402,19 @@ func end_run(won: bool) -> void:
  ui.show_result(won)
  tone(780 if won else 180,0.25)
 
-func draw_pokemon(number: int, at: Vector2, height: float, flash: bool = false, flip: bool = false) -> void:
- if not textures.has(number): return
- var crop: Rect2 = crops[number]
- var scale: float = height/maxf(crop.size.y,1)
- var size: Vector2 = crop.size*scale
- var rect := Rect2((at-Vector2(size.x*0.5,size.y)).round(),size.round())
+func draw_pokemon(number:int,at:Vector2,height:float,flash:bool=false,flip:bool=false,pose:Dictionary={},alpha:float=1.0)->void:
+ if not textures.has(number):return
+ var crop:Rect2=crops[number]
+ var pixel_scale:float=height/maxf(crop.size.y,1)
+ var sprite_size:Vector2=crop.size*pixel_scale
+ var rect:=Rect2(Vector2(-sprite_size.x*0.5,-sprite_size.y).round(),sprite_size.round())
  if flip:
-  rect.position.x += rect.size.x
-  rect.size.x = -rect.size.x
- draw_texture_rect_region(textures[number],rect,crop,Color(2,2,2,1) if flash else Color.WHITE)
+  rect.position.x+=rect.size.x
+  rect.size.x=-rect.size.x
+ draw_set_transform(at.round()+pose.get("offset",Vector2.ZERO),pose.get("lean",0.0),pose.get("scale",Vector2.ONE))
+ var tint:Color=Color(1.65,1.65,1.65,alpha) if flash else Color(1,1,1,alpha)
+ draw_texture_rect_region(textures[number],rect,crop,tint)
+ draw_set_transform(Vector2.ZERO)
 
 func _draw() -> void:
  if state == "menu": return
@@ -379,41 +431,26 @@ func _draw() -> void:
   var p: Vector2 = actor.pos
   var height: float = [43.0,52.0,67.0][stage] if is_player else (77.0 if actor.boss else 32.0)
   draw_set_transform(p,0,Vector2(1,0.3))
-  draw_circle(Vector2.ZERO,height*0.29,Color(0.1,0.23,0.18,0.28))
+  draw_circle(Vector2.ZERO,height*0.22,Color(0.1,0.23,0.18,0.12))
   draw_set_transform(Vector2.ZERO)
   if is_player:
    draw_arc(p,21,0,TAU,32,Color("e7f4bd"),1.5)
-   if invincible <= 0 or int(anim_time*18)%2 == 0:
-    draw_pokemon(player_number(),p+Vector2(0,sin(anim_time*8)*1.6),height,false,direction.x<0)
+   var pose:Dictionary=Motion.pose(anim_time,walking,attack_time,dash_time>0,-1.0 if direction.x<0 else 1.0,hit_time)
+   if dash_time>0:
+    for i in range(3,0,-1):
+     draw_pokemon(player_number(),p-direction*i*9,height,false,direction.x<0,pose,0.07*(4-i))
+   draw_pokemon(player_number(),p,height,hit_time>0,direction.x<0,pose,0.55 if invincible>0 and int(anim_time*18)%2==0 else 1.0)
   else:
-   draw_pokemon(actor.number,p+Vector2(0,sin(anim_time*5+actor.id)*1.3),height,actor.flash>0,p.x>player.x)
+   var pose:Dictionary=Motion.pose(anim_time+actor.id*0.7,0.55,0.0,false,-1.0 if p.x>player.x else 1.0,actor.flash)
+   draw_pokemon(actor.number,p,height,actor.flash>0,p.x>player.x,pose)
    if actor.hp < actor.max_hp and not actor.boss:
     draw_rect(Rect2(p+Vector2(-13,3),Vector2(26,3)),Color("344b44"))
     draw_rect(Rect2(p+Vector2(-13,3),Vector2(26*maxf(0,actor.hp/actor.max_hp),3)),Color("e4c888"))
- for shot in projectiles:
-  var c: Color = {"fire":Color("fbc17b"),"dragon":Color("c8b3fa"),"water":Color("96dcf1"),"grass":Color("c4e592")}[rules.MOVES[shot.move].type]
-  draw_line(shot.pos-shot.vel.normalized()*12,shot.pos,c.darkened(0.2),5)
-  if shot.move=="bubble":
-   draw_arc(shot.pos,6,0,TAU,12,c,2)
-  elif shot.move=="razor":
-   draw_line(shot.pos-Vector2(4,4),shot.pos+Vector2(4,4),c,4)
-  else:
-   draw_circle(shot.pos,4,c)
-  draw_circle(shot.pos,2,Color("fff1c5"))
+ for shot in projectiles: FX.projectile(self,shot,anim_time)
  for shot in hostile_shots:
-  draw_circle(shot.pos,6,Color("493565"))
-  draw_arc(shot.pos,6,0,TAU,12,Color("e7acdb"),2)
- for effect in effects:
-  var color: Color = {"normal":Color("fff0ab"),"dark":Color("c9b1d7"),"grass":Color("b8e67c"),"fire":Color("ff9552"),"poison":Color("c897dd")}[rules.MOVES[effect.move].type]
-  color.a = effect.life*3
-  var angle: float = effect.aim.angle()
-  if effect.move in ["scratch","tackle","bite","vine"]:
-   for offset in [-0.18,0.0,0.18]: draw_arc(effect.pos,effect.radius+offset*50,angle-1.0,angle+1.0,18,color,3)
-  else:
-   var points := PackedVector2Array([effect.pos])
-   for i in 12: points.append(effect.pos+Vector2.RIGHT.rotated(angle-0.7+float(i)/11*1.4)*effect.radius)
-   color.a = effect.life*1.3
-   draw_colored_polygon(points,color)
+  draw_circle(shot.pos,6,rules.catalog.COLORS.get(shot.get("type","ghost"),Color("785590")))
+  draw_arc(shot.pos,8,0,TAU,16,Color("f0d5ef"),2)
+ for effect in effects: FX.effect(self,effect)
  if ui and ui.font:
   for msg in messages: draw_string(ui.font,msg.pos,msg.text,HORIZONTAL_ALIGNMENT_LEFT,-1,14,msg.color)
 
@@ -421,3 +458,52 @@ func _exit_tree() -> void:
  if is_instance_valid(sfx):
   sfx.stop()
   sfx.stream = null
+
+func add_impact(at: Vector2, move: String) -> void:
+ if effects.size()<160:
+  effects.append({"pos":at,"move":move,"kind":"impact","life":0.26,"total":0.26,"aim":Vector2.RIGHT,"radius":18.0})
+
+func complete_region() -> void:
+ if state!="playing": return
+ if region==2:
+  end_run(true)
+  return
+ state="intermission"
+ var keys: Array = Journey.RELICS.keys()
+ for i in range(keys.size()-1,0,-1):
+  var j: int = rng.randi_range(0,i)
+  var temp=keys[i]
+  keys[i]=keys[j]
+  keys[j]=temp
+ relic_offers=keys.slice(0,3)
+ ui.show_rewards()
+ tone(880,0.18)
+
+func choose_relic(id: String) -> void:
+ if state!="intermission" or not id in relic_offers: return
+ var reward: Dictionary = Journey.RELICS[id]
+ bonuses[reward.stat] += reward.value
+ relics.append(id)
+ max_hp = 100.0+bonuses.health
+ hp=minf(max_hp,hp+25.0+(reward.value if reward.stat=="health" else 0.0))
+ region+=1
+ region_elapsed=0
+ condition=Journey.CONDITIONS[rng.randi_range(0,2)]
+ boss_spawned=false
+ enemies.clear()
+ projectiles.clear()
+ hostile_shots.clear()
+ gems.clear()
+ effects.clear()
+ messages.clear()
+ relic_offers.clear()
+ player=Vector2(480,290)
+ invincible=1.5
+ spawn_clock=0.8
+ field.region=region
+ field.queue_redraw()
+ banner="%s · %s" % [Journey.STAGES[region].place,condition.name]
+ banner_time=4
+ state="playing"
+ ui.close_modal()
+ ui.update_hud()
