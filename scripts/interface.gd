@@ -392,5 +392,5 @@ func show_credits()->void:
  hud.visible=false
  panel(modal,Rect2(150,50,660,440))
  label(modal,"출처 / 이용 안내",Vector2(181,75),28)
- paragraph(modal,"비공식 · 비영리 팬 프로토타입 / 원작과 무관합니다.\n\n이미지: PokéAPI / sprites — 이미지 저작권 The Pokémon Company\nCC0 저장소 표기는 원작 IP 사용 허가를 의미하지 않습니다.\n원작 IP 권리는 미해결 상태이며 공개 배포하지 않습니다.\n\n이름·타입·진화 연결: PokéAPI 데이터 / 출처·버전·해시 기록\n폰트: Pretendard 1.3.9 · 길형진 · SIL Open Font License 1.1\n배경·이펙트·효과음: 자체 절차적 생성 / 엔진: Godot (MIT)\n\n기술 구성·진화 레벨·능력치는 생존 게임용 커스텀 규칙입니다.\n분기 진화는 도감에 표시된 대표 경로 하나를 따릅니다.",Rect2(182,126,596,285),14,MUTED)
+ paragraph(modal,"비공식 · 비영리 팬 프로토타입 / 원작과 무관합니다.\n\n이미지: PokéAPI / sprites — 이미지 저작권 The Pokémon Company\nCC0 저장소 표기는 원작 IP 사용 허가를 의미하지 않습니다.\n원작 IP 허가는 미해결이며 저장소 공개는 이용 허가가 아닙니다.\n\n이름·타입·진화 연결: PokéAPI 데이터 / 출처·버전·해시 기록\n폰트: Pretendard 1.3.9 · 길형진 · SIL Open Font License 1.1\n배경·이펙트·효과음: 자체 절차적 생성 / 엔진: Godot (MIT)\n\n기술 구성·진화 레벨·능력치는 생존 게임용 커스텀 규칙입니다.\n분기 진화는 도감에 표시된 대표 경로 하나를 따릅니다.",Rect2(182,126,596,285),14,MUTED)
  button(modal,"돌아가기",Rect2(182,433,596,35),func():show_menu())

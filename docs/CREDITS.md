@@ -1,6 +1,6 @@
 # Credits and rights status
 
-This is an unofficial, noncommercial local prototype. It is not endorsed by Pokémon, Nintendo, Creatures, Game Freak or PokéAPI. This notice is not permission to use their intellectual property. Original Pokémon IP permission remains unresolved; this project has not been cleared for public redistribution.
+This is an unofficial, noncommercial fan prototype. It is not endorsed by Pokémon, Nintendo, Creatures, Game Freak or PokéAPI. This notice is not permission to use their intellectual property. Original Pokémon IP permission remains unresolved; this project has not been cleared for public redistribution.
 
 ## Pokémon images
 Source: https://github.com/PokeAPI/sprites
